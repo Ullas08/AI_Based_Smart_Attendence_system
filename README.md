@@ -10,7 +10,7 @@
 
 ---
 
-## 📋 Features
+## Features
 
 - **Real-time Facial Recognition** — OpenCV Haar Cascade + TensorFlow CNN
 - **Admin Dashboard** — Stats, charts, quick actions
@@ -26,7 +26,7 @@
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 AI-Based Smart Attendence/
@@ -84,7 +84,7 @@ AI-Based Smart Attendence/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -131,11 +131,11 @@ Default login:
 - **Username:** `admin`
 - **Password:** `Admin@123`
 
-> ⚠️ Change the admin password in `.env` for production use!
+> Change the admin password in `.env` for production use!
 
 ---
 
-## 📖 Usage Guide
+## Usage Guide
 
 ### 1. Add Students
 1. Go to **Students → Add Student**
@@ -165,7 +165,7 @@ Default login:
 
 ---
 
-## 🤖 AI Architecture
+## AI Architecture
 
 ### Face Detection
 - **OpenCV Haar Cascade** (`haarcascade_frontalface_default.xml`)
@@ -196,7 +196,7 @@ Input (128×128×3)
 
 ---
 
-## 🔒 Security
+## Security
 
 | Feature | Implementation |
 |---------|---------------|
@@ -209,7 +209,7 @@ Input (128×128×3)
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 Edit `.env` file:
 
@@ -226,7 +226,7 @@ CAMERA_INDEX=0
 
 ---
 
-## 📊 Database Schema
+## Database Schema
 
 ### Students Table
 | Column | Type | Description |
@@ -263,7 +263,7 @@ CAMERA_INDEX=0
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 **Camera not working?**
 - Check `CAMERA_INDEX` in `.env` (try 0, 1, 2)
@@ -288,7 +288,7 @@ pip install -r requirements.txt --upgrade
 
 ---
 
-## 📦 Deployment (Production)
+## Deployment (Production)
 
 ### Windows (with Waitress)
 ```powershell
@@ -317,13 +317,13 @@ server {
 
 ---
 
-## 📄 License
+## License
 
 MIT License — Free for educational and commercial use.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - TensorFlow / Keras — Deep learning framework
 - OpenCV — Computer vision library
