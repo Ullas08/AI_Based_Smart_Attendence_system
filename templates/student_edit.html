@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Edit Student{% endblock %}
+{% block page_title %}Edit Student{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-heading">Edit Student</h2>
+        <p class="page-sub">Update information for {{ student.name }}</p>
+    </div>
+    <a href="{{ url_for('students.index') }}" class="btn-secondary-modern">
+        <i class="bi bi-arrow-left me-2"></i>Back
+    </a>
+</div>
+
+<div class="form-page-grid">
+    <div class="form-card">
+        <div class="form-card-header">
+            <div class="student-avatar large">{{ student.name[0].upper() }}</div>
+            <div>
+                <span>{{ student.name }}</span>
+                <code style="font-size:0.8rem;opacity:0.7"> — {{ student.student_id }}</code>
+            </div>
+        </div>
+        <form method="POST" id="editStudentForm" novalidate>
+            <div class="form-grid-2">
+                <div class="form-group-modern {% if errors.name %}has-error{% endif %}">
+                    <label class="form-label-modern" for="name">Full Name <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person-fill input-icon"></i>
+                        <input type="text" id="name" name="name" class="form-control-modern"
+                               value="{{ student.name }}" required maxlength="100">
+                    </div>
+                    {% if errors.name %}<div class="field-error">{{ errors.name }}</div>{% endif %}
+                </div>
+
+                <div class="form-group-modern {% if errors.department %}has-error{% endif %}">
+                    <label class="form-label-modern" for="department">Department <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-building input-icon"></i>
+                        <select id="department" name="department" class="form-control-modern select-control" required>
+                            {% for dept in departments %}
+                            <option value="{{ dept }}" {% if student.department == dept %}selected{% endif %}>{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if errors.department %}<div class="field-error">{{ errors.department }}</div>{% endif %}
+                </div>
+
+                <div class="form-group-modern">
+                    <label class="form-label-modern" for="semester">Semester</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-mortarboard-fill input-icon"></i>
+                        <select id="semester" name="semester" class="form-control-modern select-control">
+                            {% for sem in semesters %}
+                            <option value="{{ sem }}" {% if student.semester == sem %}selected{% endif %}>Semester {{ sem }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group-modern {% if errors.email %}has-error{% endif %}">
+                    <label class="form-label-modern" for="email">Email</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-envelope-fill input-icon"></i>
+                        <input type="email" id="email" name="email" class="form-control-modern"
+                               value="{{ student.email or '' }}" maxlength="200">
+                    </div>
+                    {% if errors.email %}<div class="field-error">{{ errors.email }}</div>{% endif %}
+                </div>
+
+                <div class="form-group-modern {% if errors.phone %}has-error{% endif %}">
+                    <label class="form-label-modern" for="phone">Phone</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-telephone-fill input-icon"></i>
+                        <input type="tel" id="phone" name="phone" class="form-control-modern"
+                               value="{{ student.phone or '' }}" maxlength="20">
+                    </div>
+                    {% if errors.phone %}<div class="field-error">{{ errors.phone }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('students.capture_face', student_id=student.student_id) }}"
+                   class="btn-secondary-modern">
+                    <i class="bi bi-camera-fill me-1"></i>Recapture Face
+                </a>
+                <button type="submit" class="btn-primary-modern">
+                    <i class="bi bi-check-circle-fill me-2"></i>Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="info-panel">
+        <div class="info-card">
+            <h4><i class="bi bi-person-badge-fill me-2"></i>Student Info</h4>
+            <dl class="info-dl">
+                <dt>Student ID</dt><dd><code>{{ student.student_id }}</code></dd>
+                <dt>Face Status</dt>
+                <dd>
+                    {% if student.face_trained %}
+                    <span class="status-badge status-trained"><i class="bi bi-check-circle-fill me-1"></i>Trained</span>
+                    {% else %}
+                    <span class="status-badge status-pending"><i class="bi bi-clock-fill me-1"></i>Pending</span>
+                    {% endif %}
+                </dd>
+                <dt>Registered</dt><dd>{{ student.created_at[:10] if student.created_at else '—' }}</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+{% endblock %}

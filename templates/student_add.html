@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Add Student{% endblock %}
+{% block page_title %}Add New Student{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-heading">Add Student</h2>
+        <p class="page-sub">Register a new student and capture their face images</p>
+    </div>
+    <a href="{{ url_for('students.index') }}" class="btn-secondary-modern">
+        <i class="bi bi-arrow-left me-2"></i>Back
+    </a>
+</div>
+
+<div class="form-page-grid">
+    <div class="form-card">
+        <div class="form-card-header">
+            <i class="bi bi-person-plus-fill"></i>
+            <span>Student Information</span>
+        </div>
+        <form method="POST" id="addStudentForm" novalidate>
+            <div class="form-grid-2">
+                <!-- Student ID -->
+                <div class="form-group-modern {% if errors.student_id %}has-error{% endif %}">
+                    <label class="form-label-modern" for="student_id">
+                        Student ID <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-hash input-icon"></i>
+                        <input type="text" id="student_id" name="student_id"
+                               class="form-control-modern"
+                               value="{{ form_data.get('student_id', '') }}"
+                               placeholder="e.g. CS2024001"
+                               required maxlength="20"
+                               pattern="[A-Za-z0-9\-_]{3,20}">
+                    </div>
+                    {% if errors.student_id %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ errors.student_id }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Name -->
+                <div class="form-group-modern {% if errors.name %}has-error{% endif %}">
+                    <label class="form-label-modern" for="name">
+                        Full Name <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person-fill input-icon"></i>
+                        <input type="text" id="name" name="name"
+                               class="form-control-modern"
+                               value="{{ form_data.get('name', '') }}"
+                               placeholder="Enter full name"
+                               required maxlength="100">
+                    </div>
+                    {% if errors.name %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ errors.name }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Department -->
+                <div class="form-group-modern {% if errors.department %}has-error{% endif %}">
+                    <label class="form-label-modern" for="department">
+                        Department <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-building input-icon"></i>
+                        <select id="department" name="department" class="form-control-modern select-control" required>
+                            <option value="">Select Department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept }}" {% if form_data.get('department') == dept %}selected{% endif %}>{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if errors.department %}
+                    <div class="field-error">{{ errors.department }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Semester -->
+                <div class="form-group-modern {% if errors.semester %}has-error{% endif %}">
+                    <label class="form-label-modern" for="semester">
+                        Semester <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-mortarboard-fill input-icon"></i>
+                        <select id="semester" name="semester" class="form-control-modern select-control" required>
+                            <option value="">Select Semester</option>
+                            {% for sem in semesters %}
+                            <option value="{{ sem }}" {% if form_data.get('semester') == sem %}selected{% endif %}>Semester {{ sem }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if errors.semester %}
+                    <div class="field-error">{{ errors.semester }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Email -->
+                <div class="form-group-modern {% if errors.email %}has-error{% endif %}">
+                    <label class="form-label-modern" for="email">Email</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-envelope-fill input-icon"></i>
+                        <input type="email" id="email" name="email"
+                               class="form-control-modern"
+                               value="{{ form_data.get('email', '') }}"
+                               placeholder="student@example.com"
+                               maxlength="200">
+                    </div>
+                    {% if errors.email %}
+                    <div class="field-error">{{ errors.email }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Phone -->
+                <div class="form-group-modern {% if errors.phone %}has-error{% endif %}">
+                    <label class="form-label-modern" for="phone">Phone</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-telephone-fill input-icon"></i>
+                        <input type="tel" id="phone" name="phone"
+                               class="form-control-modern"
+                               value="{{ form_data.get('phone', '') }}"
+                               placeholder="+91 9876543210"
+                               maxlength="20">
+                    </div>
+                    {% if errors.phone %}
+                    <div class="field-error">{{ errors.phone }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('students.index') }}" class="btn-secondary-modern">Cancel</a>
+                <button type="submit" class="btn-primary-modern">
+                    <i class="bi bi-person-plus-fill me-2"></i>Add & Capture Face
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="info-panel">
+        <div class="info-card">
+            <h4><i class="bi bi-info-circle-fill me-2"></i>How It Works</h4>
+            <ol class="info-steps">
+                <li>Fill in the student details</li>
+                <li>Click "Add & Capture Face"</li>
+                <li>Use webcam to capture <strong>30–100</strong> face images</li>
+                <li>Train the AI model with the new data</li>
+                <li>Student is ready for recognition!</li>
+            </ol>
+        </div>
+        <div class="info-card info-tip">
+            <h4><i class="bi bi-lightbulb-fill me-2"></i>Tips for Best Results</h4>
+            <ul class="info-list">
+                <li>Ensure good lighting</li>
+                <li>Capture different angles</li>
+                <li>Include different expressions</li>
+                <li>Avoid face obstructions</li>
+                <li>Capture in the actual environment</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

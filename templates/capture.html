@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}Capture Face — {{ student.name }}{% endblock %}
+{% block page_title %}Face Capture{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-heading">Face Capture</h2>
+        <p class="page-sub">Capturing face images for <strong>{{ student.name }}</strong> ({{ student.student_id }})</p>
+    </div>
+    <a href="{{ url_for('students.index') }}" class="btn-secondary-modern">
+        <i class="bi bi-arrow-left me-2"></i>Back
+    </a>
+</div>
+
+<div class="capture-layout">
+    <!-- Webcam Panel -->
+    <div class="capture-main">
+        <div class="camera-card">
+            <div class="camera-header">
+                <div class="camera-status" id="cameraStatus">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Initializing...</span>
+                </div>
+                <div class="camera-controls">
+                    <select class="select-modern select-sm" id="cameraSelect">
+                        <option value="0">Camera 0 (Default)</option>
+                        <option value="1">Camera 1</option>
+                        <option value="2">Camera 2</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="camera-view">
+                <video id="webcamVideo" autoplay muted playsinline class="webcam-video"></video>
+                <canvas id="captureCanvas" style="display:none"></canvas>
+                <!-- Face overlay guides -->
+                <div class="face-guide">
+                    <div class="face-oval"></div>
+                    <p class="face-guide-text">Position face within oval</p>
+                </div>
+                <div class="camera-overlay" id="cameraOverlay">
+                    <div class="camera-starting">
+                        <div class="spinner-border text-light mb-3"></div>
+                        <p>Starting camera...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="camera-footer">
+                <button id="btnStartCamera" class="btn-camera btn-start" onclick="startCamera()">
+                    <i class="bi bi-camera-fill me-2"></i>Start Camera
+                </button>
+                <button id="btnCapture" class="btn-camera btn-capture d-none" onclick="toggleAutoCapture()">
+                    <i class="bi bi-record-circle me-2" id="captureIcon"></i>
+                    <span id="captureText">Start Capturing</span>
+                </button>
+                <button id="btnStop" class="btn-camera btn-stop d-none" onclick="stopCapture()">
+                    <i class="bi bi-stop-circle-fill me-2"></i>Stop Camera
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Panel -->
+    <div class="capture-sidebar">
+        <!-- Student Info -->
+        <div class="capture-info-card">
+            <div class="capture-student">
+                <div class="capture-avatar">{{ student.name[0].upper() }}</div>
+                <div>
+                    <div class="capture-student-name">{{ student.name }}</div>
+                    <div class="capture-student-id">{{ student.student_id }}</div>
+                    <div class="capture-student-dept">{{ student.department }} — Sem {{ student.semester }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-card">
+            <div class="progress-header">
+                <span>Capture Progress</span>
+                <span id="progressCount"><strong id="capturedCount">{{ captured }}</strong> / {{ max_images }}</span>
+            </div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-modern" id="progressBar" 
+                     style="width: {{ (captured / max_images * 100) | round | int }}%"></div>
+            </div>
+            <div class="progress-stats">
+                <span class="progress-stat">
+                    <i class="bi bi-images me-1"></i>
+                    <span id="capturedCount2">{{ captured }}</span> captured
+                </span>
+                <span class="progress-stat">
+                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                    Min: {{ min_images }}
+                </span>
+            </div>
+            {% if captured >= min_images %}
+            <div class="progress-ready">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                Enough images captured! You can train the model.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions-card">
+            <h5><i class="bi bi-lightbulb-fill me-2"></i>Capture Tips</h5>
+            <ul class="instruction-list">
+                <li><i class="bi bi-check2 text-success"></i> Good lighting (face forward)</li>
+                <li><i class="bi bi-check2 text-success"></i> Slight left/right head turns</li>
+                <li><i class="bi bi-check2 text-success"></i> Different facial expressions</li>
+                <li><i class="bi bi-check2 text-success"></i> Slight up/down angles</li>
+                <li><i class="bi bi-x text-danger"></i> Avoid sunglasses or mask</li>
+                <li><i class="bi bi-x text-danger"></i> Avoid extreme lighting</li>
+            </ul>
+        </div>
+
+        <!-- Train Button -->
+        <div class="train-card" id="trainSection" {% if captured < min_images %}style="opacity:0.5;pointer-events:none"{% endif %}>
+            <h5><i class="bi bi-cpu-fill me-2"></i>Train AI Model</h5>
+            <p>Train the CNN model with all captured face data. This includes all registered students.</p>
+            <button id="btnTrain" class="btn-primary-modern w-100" onclick="trainModel()">
+                <i class="bi bi-play-fill me-2"></i>Start Training
+            </button>
+            <div id="trainStatus" class="train-status d-none">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                <span>Training in progress... Please wait.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const STUDENT_ID = '{{ student.student_id }}';
+const MIN_IMAGES = {{ min_images }};
+const MAX_IMAGES = {{ max_images }};
+let capturedCount = {{ captured }};
+let stream = null;
+let autoCapturing = false;
+let captureInterval = null;
+
+async function startCamera() {
+    try {
+        const cameraIdx = document.getElementById('cameraSelect').value;
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: 640, height: 480 }
+        });
+        const video = document.getElementById('webcamVideo');
+        video.srcObject = stream;
+        await video.play();
+
+        document.getElementById('cameraOverlay').style.display = 'none';
+        document.getElementById('btnStartCamera').classList.add('d-none');
+        document.getElementById('btnCapture').classList.remove('d-none');
+        document.getElementById('btnStop').classList.remove('d-none');
+        setStatus('Camera active', 'active');
+    } catch (err) {
+        setStatus('Camera error: ' + err.message, 'error');
+        showToast('Cannot access camera: ' + err.message, 'error');
+    }
+}
+
+function toggleAutoCapture() {
+    if (autoCapturing) {
+        stopAutoCapture();
+    } else {
+        startAutoCapture();
+    }
+}
+
+function startAutoCapture() {
+    if (!stream) return;
+    autoCapturing = true;
+    document.getElementById('captureIcon').className = 'bi bi-stop-fill me-2';
+    document.getElementById('captureText').textContent = 'Stop Capturing';
+    document.getElementById('btnCapture').classList.add('capturing');
+    setStatus('Auto-capturing...', 'capturing');
+
+    captureInterval = setInterval(async () => {
+        if (capturedCount >= MAX_IMAGES) {
+            stopAutoCapture();
+            return;
+        }
+        await captureFrame();
+    }, 400); // capture every 400ms
+}
+
+function stopAutoCapture() {
+    autoCapturing = false;
+    clearInterval(captureInterval);
+    document.getElementById('captureIcon').className = 'bi bi-record-circle me-2';
+    document.getElementById('captureText').textContent = 'Start Capturing';
+    document.getElementById('btnCapture').classList.remove('capturing');
+    setStatus('Camera active', 'active');
+}
+
+async function captureFrame() {
+    const video = document.getElementById('webcamVideo');
+    const canvas = document.getElementById('captureCanvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    const imageData = canvas.toDataURL('image/jpeg', 0.85);
+
+    try {
+        const res = await fetch('/students/api/capture-frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_id: STUDENT_ID, image: imageData })
+        });
+        const data = await res.json();
+        if (data.success) {
+            capturedCount = data.count;
+            updateProgress(capturedCount);
+            if (data.face_count === 0) {
+                setStatus('No face detected — adjust position', 'warning');
+            } else {
+                setStatus(`Auto-capturing... ${capturedCount}/${MAX_IMAGES}`, 'capturing');
+            }
+            if (data.complete) {
+                document.getElementById('trainSection').style.opacity = '1';
+                document.getElementById('trainSection').style.pointerEvents = 'auto';
+                if (!document.querySelector('.progress-ready')) {
+                    showToast('Minimum images captured! Ready to train model.', 'success');
+                }
+            }
+            if (capturedCount >= MAX_IMAGES) {
+                stopAutoCapture();
+                showToast('Maximum images captured!', 'success');
+            }
+        }
+    } catch (err) {
+        console.error('Capture error:', err);
+    }
+}
+
+function updateProgress(count) {
+    document.getElementById('capturedCount').textContent = count;
+    document.getElementById('capturedCount2').textContent = count;
+    const pct = Math.min(100, (count / MAX_IMAGES * 100)).toFixed(0);
+    document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function stopCapture() {
+    stopAutoCapture();
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+    document.getElementById('btnCapture').classList.add('d-none');
+    document.getElementById('btnStop').classList.add('d-none');
+    document.getElementById('btnStartCamera').classList.remove('d-none');
+    document.getElementById('cameraOverlay').style.display = 'flex';
+    setStatus('Camera stopped', 'idle');
+}
+
+function setStatus(text, type) {
+    const dot = document.getElementById('statusDot');
+    document.getElementById('statusText').textContent = text;
+    dot.className = 'status-dot status-' + type;
+}
+
+async function trainModel() {
+    document.getElementById('btnTrain').disabled = true;
+    document.getElementById('trainStatus').classList.remove('d-none');
+    
+    try {
+        const res = await fetch('/recognition/train', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Training started! This may take a few minutes.', 'info');
+            checkTrainingStatus();
+        } else {
+            showToast('Training failed: ' + data.message, 'error');
+            document.getElementById('btnTrain').disabled = false;
+            document.getElementById('trainStatus').classList.add('d-none');
+        }
+    } catch (err) {
+        showToast('Error starting training', 'error');
+        document.getElementById('btnTrain').disabled = false;
+        document.getElementById('trainStatus').classList.add('d-none');
+    }
+}
+
+function checkTrainingStatus() {
+    const interval = setInterval(async () => {
+        try {
+            const res = await fetch('/recognition/train/status');
+            const data = await res.json();
+            if (data.training_running) {
+                document.getElementById('trainStatus').innerHTML = 
+                    `<div class="spinner-border spinner-border-sm text-primary me-2"></div><span>${data.training_message || 'Training in progress...'}</span>`;
+            } else {
+                clearInterval(interval);
+                document.getElementById('btnTrain').disabled = false;
+                if (data.training_success) {
+                    document.getElementById('trainStatus').innerHTML = 
+                        `<i class="bi bi-check-circle-fill text-success me-2"></i>Training complete! Accuracy: ${data.training_accuracy || data.best_accuracy || 0}%`;
+                    showToast(`Model trained successfully! Accuracy: ${data.training_accuracy || data.best_accuracy || 0}%`, 'success');
+                    
+                    // Reload if min captured condition is met or update status
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    document.getElementById('trainStatus').innerHTML = 
+                        `<i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Training failed: ${data.training_error || 'Unknown error'}`;
+                    showToast(`Training failed: ${data.training_error || 'Unknown error'}`, 'error');
+                }
+            }
+        } catch (e) {
+            clearInterval(interval);
+            document.getElementById('btnTrain').disabled = false;
+            document.getElementById('trainStatus').classList.add('d-none');
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

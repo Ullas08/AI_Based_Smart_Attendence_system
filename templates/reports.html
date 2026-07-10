@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Reports & Export{% endblock %}
+{% block page_title %}Reports & Export{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-heading">Reports</h2>
+        <p class="page-sub">Download attendance data in multiple formats</p>
+    </div>
+</div>
+
+<div class="reports-grid">
+    <!-- Export Card -->
+    <div class="report-card report-main">
+        <div class="report-card-header">
+            <i class="bi bi-file-earmark-bar-graph-fill"></i>
+            <h3>Export Attendance</h3>
+        </div>
+
+        <!-- Filters -->
+        <div class="report-filters">
+            <h5 class="filter-label"><i class="bi bi-funnel-fill me-2"></i>Filter Options</h5>
+            <div class="form-grid-3">
+                <div class="form-group-modern">
+                    <label class="form-label-modern">Date</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-calendar3 input-icon"></i>
+                        <input type="date" id="filterDate" class="form-control-modern" value="{{ today }}" max="{{ today }}">
+                    </div>
+                </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">Student</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person-fill input-icon"></i>
+                        <input type="text" id="filterStudent" class="form-control-modern" placeholder="Name or ID">
+                    </div>
+                </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">Department</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-building input-icon"></i>
+                        <select id="filterDept" class="form-control-modern select-control">
+                            <option value="">All Departments</option>
+                            {% for dept in departments %}
+                            <option>{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="export-btns">
+            <button class="export-btn export-excel" onclick="downloadReport('excel')">
+                <div class="export-btn-icon"><i class="bi bi-file-earmark-excel-fill"></i></div>
+                <div class="export-btn-info">
+                    <span class="export-btn-title">Excel</span>
+                    <span class="export-btn-sub">.xlsx format</span>
+                </div>
+            </button>
+            <button class="export-btn export-csv" onclick="downloadReport('csv')">
+                <div class="export-btn-icon"><i class="bi bi-filetype-csv"></i></div>
+                <div class="export-btn-info">
+                    <span class="export-btn-title">CSV</span>
+                    <span class="export-btn-sub">.csv format</span>
+                </div>
+            </button>
+            <button class="export-btn export-pdf" onclick="downloadReport('pdf')">
+                <div class="export-btn-icon"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+                <div class="export-btn-info">
+                    <span class="export-btn-title">PDF</span>
+                    <span class="export-btn-sub">.pdf report</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- Quick Exports -->
+        <div class="quick-exports">
+            <h5 class="filter-label mt-3"><i class="bi bi-lightning-fill me-2"></i>Quick Exports</h5>
+            <div class="quick-export-chips">
+                <button class="quick-chip" onclick="quickExport('today')">
+                    <i class="bi bi-calendar-day-fill me-1"></i>Today Excel
+                </button>
+                <button class="quick-chip" onclick="quickExport('today-pdf')">
+                    <i class="bi bi-calendar-day-fill me-1"></i>Today PDF
+                </button>
+                <button class="quick-chip" onclick="quickExport('all')">
+                    <i class="bi bi-database-fill me-1"></i>All Records
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="report-sidebar">
+        <div class="report-info-card">
+            <div class="report-info-icon excel-icon"><i class="bi bi-file-earmark-excel-fill"></i></div>
+            <h4>Excel Report</h4>
+            <p>Formatted spreadsheet with auto-width columns. Ideal for further data analysis.</p>
+        </div>
+        <div class="report-info-card">
+            <div class="report-info-icon csv-icon"><i class="bi bi-filetype-csv"></i></div>
+            <h4>CSV Export</h4>
+            <p>Raw comma-separated values. Compatible with any spreadsheet software.</p>
+        </div>
+        <div class="report-info-card">
+            <div class="report-info-icon pdf-icon"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+            <h4>PDF Report</h4>
+            <p>Formatted, printable report with header, filters applied, and styled table.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function buildParams(format) {
+    const params = new URLSearchParams();
+    params.set('format', format);
+    const date = document.getElementById('filterDate').value;
+    const student = document.getElementById('filterStudent').value;
+    const dept = document.getElementById('filterDept').value;
+    if (date) params.set('date', date);
+    if (student) params.set('student', student);
+    if (dept) params.set('dept', dept);
+    return params.toString();
+}
+
+function downloadReport(format) {
+    const url = '/reports/export?' + buildParams(format);
+    window.location.href = url;
+    showToast(`Downloading ${format.toUpperCase()} report...`, 'info');
+}
+
+function quickExport(type) {
+    const today = '{{ today }}';
+    let url = '/reports/export?';
+    if (type === 'today') url += `format=excel&date=${today}`;
+    else if (type === 'today-pdf') url += `format=pdf&date=${today}`;
+    else url += 'format=excel';
+    window.location.href = url;
+    showToast('Downloading report...', 'info');
+}
+</script>
+{% endblock %}

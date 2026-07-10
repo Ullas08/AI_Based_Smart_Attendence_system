@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+
+    <!-- ── Stats Cards ─────────────────────────────────────────────────── -->
+    <div class="stats-grid">
+        <div class="stat-card stat-blue">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-body">
+                <div class="stat-value" id="totalStudents">{{ stats.total_students }}</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+            <div class="stat-trend"><i class="bi bi-person-plus-fill"></i></div>
+        </div>
+        <div class="stat-card stat-green">
+            <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+            <div class="stat-body">
+                <div class="stat-value" id="presentToday">{{ stats.present_today }}</div>
+                <div class="stat-label">Present Today</div>
+            </div>
+            <div class="stat-trend"><i class="bi bi-calendar-check-fill"></i></div>
+        </div>
+        <div class="stat-card stat-purple">
+            <div class="stat-icon"><i class="bi bi-percent"></i></div>
+            <div class="stat-body">
+                <div class="stat-value" id="attendancePct">{{ stats.attendance_pct }}%</div>
+                <div class="stat-label">Attendance Rate</div>
+            </div>
+            <div class="stat-trend"><i class="bi bi-graph-up-arrow"></i></div>
+        </div>
+        <div class="stat-card stat-orange">
+            <div class="stat-icon"><i class="bi bi-camera-video-fill"></i></div>
+            <div class="stat-body">
+                <div class="stat-value">LIVE</div>
+                <div class="stat-label">Recognition Active</div>
+            </div>
+            <div class="stat-trend"><a href="{{ url_for('recognition.index') }}" class="btn-sm-link">Start <i class="bi bi-arrow-right"></i></a></div>
+        </div>
+    </div>
+
+    <!-- ── Charts Row ──────────────────────────────────────────────────── -->
+    <div class="charts-grid">
+        <div class="chart-card chart-wide">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Monthly Attendance Trend</h3>
+                    <p class="chart-sub">Last 30 days attendance</p>
+                </div>
+                <div class="chart-actions">
+                    <button class="chart-btn active" data-chart="line">Line</button>
+                    <button class="chart-btn" data-chart="bar">Bar</button>
+                </div>
+            </div>
+            <div class="chart-body">
+                <canvas id="monthlyChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h3 class="chart-title">Dept. Attendance</h3>
+                    <p class="chart-sub">Today by department</p>
+                </div>
+            </div>
+            <div class="chart-body">
+                <canvas id="deptChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Quick Actions ───────────────────────────────────────────────── -->
+    <div class="quick-actions-grid">
+        <a href="{{ url_for('recognition.index') }}" class="quick-action-card qa-primary">
+            <i class="bi bi-camera-fill"></i>
+            <span>Start Recognition</span>
+            <p>Launch live facial recognition</p>
+        </a>
+        <a href="{{ url_for('students.add') }}" class="quick-action-card qa-success">
+            <i class="bi bi-person-plus-fill"></i>
+            <span>Add Student</span>
+            <p>Register a new student</p>
+        </a>
+        <a href="{{ url_for('attendance.index') }}" class="quick-action-card qa-info">
+            <i class="bi bi-calendar-check-fill"></i>
+            <span>View Attendance</span>
+            <p>Browse attendance records</p>
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="quick-action-card qa-warning">
+            <i class="bi bi-download"></i>
+            <span>Export Report</span>
+            <p>Download Excel / PDF</p>
+        </a>
+    </div>
+
+</div>
+
+<script>
+// ── Chart Data ──────────────────────────────────────────────────────────────
+const monthlyData = {{ stats.monthly | tojson }};
+const deptData = {{ stats.dept_stats | tojson }};
+
+const labels = monthlyData.map(d => d.date);
+const counts = monthlyData.map(d => d.count);
+
+const GRADIENT_BLUE = (ctx) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(102, 126, 234, 0.6)');
+    gradient.addColorStop(1, 'rgba(102, 126, 234, 0.05)');
+    return gradient;
+};
+
+// Monthly Chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+let monthlyChart = new Chart(monthlyCtx, {
+    type: 'line',
+    data: {
+        labels: labels.length ? labels : ['No Data'],
+        datasets: [{
+            label: 'Students Present',
+            data: counts.length ? counts : [0],
+            borderColor: '#667eea',
+            backgroundColor: GRADIENT_BLUE(monthlyCtx),
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#667eea',
+            pointRadius: 5,
+            pointHoverRadius: 8,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(20,20,40,0.95)',
+                padding: 12,
+                titleColor: '#a0a0cc',
+                bodyColor: '#fff',
+                borderColor: '#667eea',
+                borderWidth: 1,
+            }
+        },
+        scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9999bb' } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9999bb', stepSize: 1 }, min: 0 }
+        }
+    }
+});
+
+// Department Pie Chart
+const deptCtx = document.getElementById('deptChart').getContext('2d');
+const deptColors = ['#667eea','#764ba2','#f093fb','#4facfe','#43e97b','#f6d365','#fd7043'];
+new Chart(deptCtx, {
+    type: 'doughnut',
+    data: {
+        labels: deptData.length ? deptData.map(d => d.dept) : ['No Data'],
+        datasets: [{
+            data: deptData.length ? deptData.map(d => d.count) : [1],
+            backgroundColor: deptColors,
+            borderWidth: 0,
+            hoverOffset: 8,
+        }]
+    },
+    options: {
+        responsive: true,
+        cutout: '65%',
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#9999bb', padding: 12, font: { size: 12 } }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(20,20,40,0.95)',
+                padding: 10,
+                titleColor: '#a0a0cc',
+                bodyColor: '#fff',
+            }
+        }
+    }
+});
+
+// Chart type switcher
+document.querySelectorAll('.chart-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const type = this.dataset.chart;
+        monthlyChart.config.type = type;
+        monthlyChart.update();
+    });
+});
+
+// Live stats refresh every 30s
+setInterval(() => {
+    fetch('/api/stats').then(r => r.json()).then(data => {
+        document.getElementById('totalStudents').textContent = data.total_students;
+        document.getElementById('presentToday').textContent = data.present_today;
+        document.getElementById('attendancePct').textContent = data.attendance_pct + '%';
+    }).catch(() => {});
+}, 30000);
+</script>
+{% endblock %}

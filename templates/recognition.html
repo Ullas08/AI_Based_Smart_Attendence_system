@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Live Recognition{% endblock %}
+{% block page_title %}Live Recognition{% endblock %}
+
+{% block content %}
+<div class="recognition-layout">
+    <!-- Left: Video Feed -->
+    <div class="recognition-main">
+        <div class="live-camera-card">
+            <div class="live-header">
+                <div class="live-badge">
+                    <span class="live-dot" id="liveDot"></span>
+                    <span id="liveStatus">Starting...</span>
+                </div>
+                <div class="live-actions">
+                    <button id="btnStart" class="btn-live btn-live-start" onclick="startRecognition()">
+                        <i class="bi bi-play-fill me-1"></i>Start
+                    </button>
+                    <button id="btnStopRec" class="btn-live btn-live-stop d-none" onclick="stopRecognition()">
+                        <i class="bi bi-stop-fill me-1"></i>Stop
+                    </button>
+                </div>
+            </div>
+
+            <div class="live-feed-wrap">
+                <img id="liveFeed" src="" alt="Live Feed" class="live-feed d-none">
+                <div class="feed-placeholder" id="feedPlaceholder">
+                    <i class="bi bi-camera-video-off-fill"></i>
+                    <p>Click Start to begin live recognition</p>
+                    {% if not model_loaded %}
+                    <div class="no-model-warn">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        No trained model found. Please add students, capture faces, and train the model first.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recognition Results Overlay -->
+            <div class="live-results" id="liveResults" style="display:none">
+                <div class="live-results-header">
+                    <i class="bi bi-person-bounding-box me-2"></i>
+                    Detected Faces: <strong id="faceCount">0</strong>
+                </div>
+                <div id="detectionsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Activity & Stats -->
+    <div class="recognition-sidebar">
+        <!-- Model Status -->
+        <div class="rec-status-card">
+            <h5><i class="bi bi-cpu-fill me-2"></i>AI Model Status</h5>
+            <div class="model-status-row">
+                <span>Model Loaded:</span>
+                <span id="modelStatus" class="{% if model_loaded %}text-success{% else %}text-danger{% endif %}">
+                    {% if model_loaded %}<i class="bi bi-check-circle-fill me-1"></i>Ready{% else %}<i class="bi bi-x-circle-fill me-1"></i>Not Loaded{% endif %}
+                </span>
+            </div>
+            <div class="model-status-row">
+                <span>Confidence Threshold:</span>
+                <span class="text-info">75%</span>
+            </div>
+            <div class="model-status-row">
+                <span>Detection Engine:</span>
+                <span>OpenCV Haar Cascade</span>
+            </div>
+            {% if not model_loaded %}
+            <button class="btn-primary-modern w-100 mt-3" onclick="trainNow()">
+                <i class="bi bi-cpu-fill me-2"></i>Train Model Now
+            </button>
+            <div id="trainProgress" class="d-none mt-2 text-center text-muted small">
+                <span class="spinner-border spinner-border-sm me-1"></span>Training in progress...
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Live Attendance Log -->
+        <div class="rec-log-card">
+            <div class="rec-log-header">
+                <h5><i class="bi bi-list-check me-2"></i>Today's Log</h5>
+                <span class="log-count" id="logCount">0</span>
+            </div>
+            <div class="rec-log-list" id="recLogList">
+                <div class="log-empty">No attendance marked yet</div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="rec-mini-stats">
+            <div class="mini-stat">
+                <i class="bi bi-person-check-fill"></i>
+                <div>
+                    <div class="mini-stat-val" id="miniPresent">—</div>
+                    <div class="mini-stat-label">Present Today</div>
+                </div>
+            </div>
+            <div class="mini-stat">
+                <i class="bi bi-camera-fill"></i>
+                <div>
+                    <div class="mini-stat-val" id="miniFaces">0</div>
+                    <div class="mini-stat-label">Faces Detected</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let statusInterval = null;
+let recognitionActive = false;
+const loggedStudents = new Set();
+
+async function startRecognition() {
+    try {
+        const res = await fetch('/recognition/start', { method: 'POST' });
+        const data = await res.json();
+        
+        recognitionActive = true;
+        const feed = document.getElementById('liveFeed');
+        feed.src = '/recognition/video_feed?' + Date.now();
+        feed.classList.remove('d-none');
+        document.getElementById('feedPlaceholder').style.display = 'none';
+        document.getElementById('liveResults').style.display = 'block';
+        document.getElementById('btnStart').classList.add('d-none');
+        document.getElementById('btnStopRec').classList.remove('d-none');
+        setLiveStatus('active', 'Live');
+
+        if (!data.model_loaded) {
+            showToast('Model not loaded — recognition disabled. Train first.', 'warning');
+        }
+
+        statusInterval = setInterval(pollStatus, 2000);
+    } catch (err) {
+        showToast('Failed to start recognition: ' + err.message, 'error');
+    }
+}
+
+async function stopRecognition() {
+    clearInterval(statusInterval);
+    recognitionActive = false;
+    await fetch('/recognition/stop', { method: 'POST' });
+    
+    document.getElementById('liveFeed').classList.add('d-none');
+    document.getElementById('liveFeed').src = '';
+    document.getElementById('feedPlaceholder').style.display = 'flex';
+    document.getElementById('liveResults').style.display = 'none';
+    document.getElementById('btnStart').classList.remove('d-none');
+    document.getElementById('btnStopRec').classList.add('d-none');
+    setLiveStatus('idle', 'Stopped');
+}
+
+async function pollStatus() {
+    try {
+        const res = await fetch('/recognition/api/status');
+        const data = await res.json();
+        
+        document.getElementById('faceCount').textContent = data.detections;
+        document.getElementById('miniFaces').textContent = data.detections;
+
+        const list = document.getElementById('detectionsList');
+        list.innerHTML = '';
+        data.results.forEach(r => {
+            const div = document.createElement('div');
+            div.className = `detection-chip ${r.unknown ? 'unknown' : 'known'}`;
+            div.innerHTML = r.unknown
+                ? `<i class="bi bi-question-circle-fill me-1"></i> Unknown (${r.confidence}%)`
+                : `<i class="bi bi-person-check-fill me-1"></i> ${r.student_id} — ${r.confidence}%`;
+            list.appendChild(div);
+
+            // Add to log if new
+            if (!r.unknown && !loggedStudents.has(r.student_id)) {
+                loggedStudents.add(r.student_id);
+                addToLog(r.student_id, r.confidence);
+                document.getElementById('logCount').textContent = loggedStudents.size;
+                document.getElementById('miniPresent').textContent = loggedStudents.size;
+                showToast(`✓ Attendance marked: ${r.student_id}`, 'success');
+            }
+        });
+    } catch (e) {}
+}
+
+function addToLog(studentId, confidence) {
+    const list = document.getElementById('recLogList');
+    const empty = list.querySelector('.log-empty');
+    if (empty) empty.remove();
+    
+    const now = new Date().toLocaleTimeString();
+    const item = document.createElement('div');
+    item.className = 'log-item';
+    item.innerHTML = `
+        <div class="log-avatar">${studentId[0].toUpperCase()}</div>
+        <div class="log-info">
+            <div class="log-id">${studentId}</div>
+            <div class="log-time">${now} • ${confidence}%</div>
+        </div>
+        <span class="log-status"><i class="bi bi-check-circle-fill text-success"></i></span>
+    `;
+    list.insertBefore(item, list.firstChild);
+}
+
+function setLiveStatus(type, text) {
+    const dot = document.getElementById('liveDot');
+    document.getElementById('liveStatus').textContent = text;
+    dot.className = 'live-dot live-' + type;
+}
+
+async function trainNow() {
+    const btn = document.querySelector('[onclick="trainNow()"]');
+    if (btn) btn.disabled = true;
+    
+    const progress = document.getElementById('trainProgress');
+    progress.classList.remove('d-none');
+    progress.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Training started...`;
+    
+    await fetch('/recognition/train', { method: 'POST' });
+    showToast('Training started in background...', 'info');
+    
+    const check = setInterval(async () => {
+        const res = await fetch('/recognition/train/status');
+        const data = await res.json();
+        
+        if (data.training_running) {
+            progress.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>${data.training_message || 'Training...'}`;
+        } else {
+            clearInterval(check);
+            if (btn) btn.disabled = false;
+            
+            if (data.training_success) {
+                progress.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i>Training complete!`;
+                showToast(`Model trained successfully! Accuracy: ${data.best_accuracy}%`, 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                progress.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>Failed: ${data.training_error || 'Dataset issue'}`;
+                showToast(`Training failed: ${data.training_error || 'Dataset issue'}`, 'error');
+            }
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

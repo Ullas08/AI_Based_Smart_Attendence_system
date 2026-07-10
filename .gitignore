@@ -1,0 +1,30 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+venv/
+ENV/
+
+# Local databases
+*.db
+*.sqlite3
+
+# Saved datasets & models (we keep the folders, but ignore the content)
+dataset/*
+!dataset/.gitkeep
+trained_models/*
+!trained_models/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# IDE configs
+.vscode/
+.idea/
+.gemini/
+.agents/
+.cagent/
+*.log

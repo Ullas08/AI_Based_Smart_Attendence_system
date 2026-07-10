@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Student Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-heading">Students</h2>
+        <p class="page-sub">Manage registered students and their face datasets</p>
+    </div>
+    <a href="{{ url_for('students.add') }}" class="btn-primary-modern">
+        <i class="bi bi-person-plus-fill me-2"></i>Add Student
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+    <form method="GET" class="filter-form" id="filterForm">
+        <div class="search-input-wrap">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or ID..."
+                   class="search-input" id="searchInput">
+        </div>
+        <select name="dept" class="select-modern" onchange="this.form.submit()">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept }}" {% if dept_filter == dept %}selected{% endif %}>{{ dept }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn-filter">
+            <i class="bi bi-funnel-fill me-1"></i>Filter
+        </button>
+        {% if search or dept_filter %}
+        <a href="{{ url_for('students.index') }}" class="btn-clear">
+            <i class="bi bi-x-circle me-1"></i>Clear
+        </a>
+        {% endif %}
+    </form>
+    <div class="result-count">
+        <span>{{ students|length }} student{% if students|length != 1 %}s{% endif %} found</span>
+    </div>
+</div>
+
+<!-- Students Table -->
+{% if students %}
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="data-table" id="studentsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Semester</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Face Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td class="text-muted">{{ loop.index }}</td>
+                    <td><code class="student-id">{{ student.student_id }}</code></td>
+                    <td>
+                        <div class="student-name-cell">
+                            <div class="student-avatar">{{ student.name[0].upper() }}</div>
+                            <span>{{ student.name }}</span>
+                        </div>
+                    </td>
+                    <td><span class="dept-badge">{{ student.department }}</span></td>
+                    <td>Sem {{ student.semester }}</td>
+                    <td class="text-muted small">{{ student.email or '—' }}</td>
+                    <td class="text-muted small">{{ student.phone or '—' }}</td>
+                    <td>
+                        {% if student.face_trained %}
+                        <span class="status-badge status-trained">
+                            <i class="bi bi-check-circle-fill me-1"></i>Trained
+                        </span>
+                        {% else %}
+                        <span class="status-badge status-pending">
+                            <i class="bi bi-clock-fill me-1"></i>Pending
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <a href="{{ url_for('students.capture_face', student_id=student.student_id) }}" 
+                               class="action-btn action-btn-primary" title="Capture Face">
+                                <i class="bi bi-camera-fill"></i>
+                            </a>
+                            <a href="{{ url_for('students.edit', pk=student.id) }}"
+                               class="action-btn action-btn-info" title="Edit">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <button class="action-btn action-btn-danger" title="Delete"
+                                    onclick="confirmDelete({{ student.id }}, '{{ student.name }}')">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-people"></i></div>
+    <h3>No students found</h3>
+    <p>{% if search or dept_filter %}Try adjusting your filters.{% else %}Start by adding your first student.{% endif %}</p>
+    {% if not search and not dept_filter %}
+    <a href="{{ url_for('students.add') }}" class="btn-primary-modern">
+        <i class="bi bi-person-plus-fill me-2"></i>Add First Student
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal" style="display:none">
+    <div class="modal-card">
+        <div class="modal-icon modal-danger-icon">
+            <i class="bi bi-trash-fill"></i>
+        </div>
+        <h3 class="modal-title">Delete Student?</h3>
+        <p class="modal-text">This will permanently delete <strong id="deleteStudentName"></strong> and all their face data. This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
+            <form id="deleteForm" method="POST">
+                <button type="submit" class="btn-modal-danger">
+                    <i class="bi bi-trash-fill me-1"></i>Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(pk, name) {
+    document.getElementById('deleteStudentName').textContent = name;
+    document.getElementById('deleteForm').action = `/students/delete/${pk}`;
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+});
+
+// Live search
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        document.getElementById('filterForm').submit();
+    }, 500);
+});
+</script>
+{% endblock %}

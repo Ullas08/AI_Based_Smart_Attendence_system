@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Attendance Records{% endblock %}
+{% block page_title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-heading">Attendance</h2>
+        <p class="page-sub">{{ total }} records found</p>
+    </div>
+    <a href="{{ url_for('reports.index') }}" class="btn-primary-modern">
+        <i class="bi bi-download me-2"></i>Export
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+    <form method="GET" class="filter-form" id="filterForm">
+        <div class="input-wrapper">
+            <i class="bi bi-calendar3 input-icon"></i>
+            <input type="date" name="date" value="{{ date_filter }}" class="form-control-modern"
+                   onchange="this.form.submit()" max="{{ today }}">
+        </div>
+        <div class="search-input-wrap">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" name="student" value="{{ student_filter }}"
+                   placeholder="Search student..." class="search-input">
+        </div>
+        <select name="dept" class="select-modern" onchange="this.form.submit()">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept }}" {% if dept_filter == dept %}selected{% endif %}>{{ dept }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn-filter">
+            <i class="bi bi-funnel-fill me-1"></i>Filter
+        </button>
+        {% if date_filter or student_filter or dept_filter %}
+        <a href="{{ url_for('attendance.index') }}" class="btn-clear">
+            <i class="bi bi-x-circle me-1"></i>Clear
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Quick Date Chips -->
+<div class="date-chips">
+    <a href="{{ url_for('attendance.index', date=today) }}" 
+       class="date-chip {% if date_filter == today %}active{% endif %}">Today</a>
+    <a href="{{ url_for('attendance.index') }}" 
+       class="date-chip {% if not date_filter %}active{% endif %}">All Time</a>
+</div>
+
+<!-- Table -->
+{% if records %}
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="data-table" id="attendanceTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td class="text-muted">{{ loop.index }}</td>
+                    <td><code class="student-id">{{ record.student_id }}</code></td>
+                    <td>
+                        <div class="student-name-cell">
+                            <div class="student-avatar small">{{ record.student_name[0].upper() }}</div>
+                            <span>{{ record.student_name }}</span>
+                        </div>
+                    </td>
+                    <td><span class="dept-badge">{{ record.department or '—' }}</span></td>
+                    <td>{{ record.date }}</td>
+                    <td class="text-muted">{{ record.time }}</td>
+                    <td>
+                        {% set conf = (record.confidence * 100) | round | int %}
+                        <div class="conf-wrap">
+                            <div class="conf-bar">
+                                <div class="conf-fill {% if conf >= 85 %}conf-high{% elif conf >= 70 %}conf-mid{% else %}conf-low{% endif %}"
+                                     style="width: {{ conf }}%"></div>
+                            </div>
+                            <span class="conf-val">{{ conf }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-present">
+                            <i class="bi bi-check-circle-fill me-1"></i>{{ record.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-calendar-x"></i></div>
+    <h3>No attendance records</h3>
+    <p>{% if date_filter or student_filter or dept_filter %}Try different filter options.{% else %}Start live recognition to mark attendance automatically.{% endif %}</p>
+    <a href="{{ url_for('recognition.index') }}" class="btn-primary-modern">
+        <i class="bi bi-camera-fill me-2"></i>Start Recognition
+    </a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+    <!-- Animated background -->
+    <div class="auth-bg">
+        <div class="auth-particle" style="--delay:0s;--x:10%;--y:20%"></div>
+        <div class="auth-particle" style="--delay:1s;--x:80%;--y:10%"></div>
+        <div class="auth-particle" style="--delay:2s;--x:50%;--y:80%"></div>
+        <div class="auth-particle" style="--delay:0.5s;--x:30%;--y:60%"></div>
+        <div class="auth-particle" style="--delay:1.5s;--x:70%;--y:40%"></div>
+    </div>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Logo -->
+            <div class="auth-logo">
+                <div class="auth-logo-icon">
+                    <i class="bi bi-camera-video-fill"></i>
+                </div>
+                <h1 class="auth-brand">FaceAttend</h1>
+                <p class="auth-tagline">AI-Powered Smart Attendance System</p>
+            </div>
+
+            <!-- Login Form -->
+            <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form" id="loginForm" novalidate>
+                <h2 class="auth-title">Welcome Back</h2>
+                <p class="auth-subtitle">Sign in to your admin account</p>
+
+                {% if error %}
+                <div class="auth-error">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <div class="form-group-modern">
+                    <label for="username" class="form-label-modern">Username</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person-fill input-icon"></i>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username"
+                            class="form-control-modern"
+                            placeholder="Enter username"
+                            required
+                            autocomplete="username"
+                            maxlength="64"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group-modern">
+                    <label for="password" class="form-label-modern">Password</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-lock-fill input-icon"></i>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password"
+                            class="form-control-modern"
+                            placeholder="Enter password"
+                            required
+                            autocomplete="current-password"
+                            maxlength="128"
+                        >
+                        <button type="button" class="password-toggle" id="passToggle" aria-label="Toggle password visibility">
+                            <i class="bi bi-eye-fill" id="passIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-auth" id="loginBtn">
+                    <span class="btn-text">
+                        <i class="bi bi-shield-lock-fill me-2"></i>Sign In
+                    </span>
+                    <span class="btn-loader d-none">
+                        <span class="spinner-border spinner-border-sm"></span>
+                    </span>
+                </button>
+
+                <div class="auth-hint">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Default: <code>admin</code> / <code>Admin@123</code>
+                </div>
+            </form>
+        </div>
+
+        <div class="auth-features">
+            <div class="feature-chip">
+                <i class="bi bi-camera-fill"></i> Real-time Recognition
+            </div>
+            <div class="feature-chip">
+                <i class="bi bi-shield-check-fill"></i> Secure & Private
+            </div>
+            <div class="feature-chip">
+                <i class="bi bi-graph-up-arrow"></i> Smart Analytics
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Password toggle
+document.getElementById('passToggle').addEventListener('click', function() {
+    const inp = document.getElementById('password');
+    const icon = document.getElementById('passIcon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'bi bi-eye-slash-fill';
+    } else {
+        inp.type = 'password';
+        icon.className = 'bi bi-eye-fill';
+    }
+});
+
+// Loader on submit
+document.getElementById('loginForm').addEventListener('submit', function() {
+    document.querySelector('.btn-text').classList.add('d-none');
+    document.querySelector('.btn-loader').classList.remove('d-none');
+});
+</script>
+{% endblock %}
